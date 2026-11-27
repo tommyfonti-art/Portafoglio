@@ -1,0 +1,30 @@
+{
+ "MWRD.MI": {
+  "isin": "IE000BI8OT95",
+  "tipo": "etf"
+ },
+ "A500.MI": {
+  "isin": "LU1681048804",
+  "tipo": "etf"
+ },
+ "EM710.MI": {
+  "isin": "LU1287023185",
+  "tipo": "etf"
+ },
+ "WGLD.MI": {
+  "isin": "JE00BN2CJ301",
+  "tipo": "etc-etn"
+ },
+ "XEON.MI": {
+  "isin": "LU0290358497",
+  "tipo": "etf"
+ },
+ "US1.MI": {
+  "isin": "LU1407887089",
+  "tipo": "etf"
+ },
+ "EMI.MI": {
+  "isin": "LU1650491282",
+  "tipo": "etf"
+ }
+}

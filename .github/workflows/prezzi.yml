@@ -1,0 +1,21 @@
+# Non gira più da solo: i prezzi li prende il ponte su Cloudflare quando premi «Aggiorna prezzi». Resta avviabile a mano.
+name: Prezzi ETF
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: prezzi
+jobs:
+  prezzi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node script/prezzi.mjs
+      - name: Salva i prezzi
+        run: |
+          git config user.name "prezzi-automatici"
+          git config user.email "prezzi@users.noreply.github.com"
+          git add prezzi.json
+          git diff --cached --quiet || (git commit -m "Prezzi aggiornati" && git pull --rebase && git push)

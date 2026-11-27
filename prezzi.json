@@ -1,0 +1,40 @@
+{
+ "aggiornato": "2026-11-23T19:45:50.106Z",
+ "prezzi": {
+  "MWRD.MI": {
+   "prezzo": 159.21,
+   "data": "2026-11-23T19:45:45.148Z",
+   "fonte": "borsaitaliana"
+  },
+  "A500.MI": {
+   "prezzo": 133.36,
+   "data": "2026-11-23T19:45:45.938Z",
+   "fonte": "borsaitaliana"
+  },
+  "EM710.MI": {
+   "prezzo": 165.58,
+   "data": "2026-11-23T19:45:46.910Z",
+   "fonte": "borsaitaliana"
+  },
+  "WGLD.MI": {
+   "prezzo": 334.63,
+   "data": "2026-11-23T19:45:47.726Z",
+   "fonte": "borsaitaliana"
+  },
+  "XEON.MI": {
+   "prezzo": 150.894,
+   "data": "2026-11-23T19:45:48.512Z",
+   "fonte": "borsaitaliana"
+  },
+  "US1.MI": {
+   "prezzo": 10.4,
+   "data": "2026-11-23T19:45:49.326Z",
+   "fonte": "borsaitaliana"
+  },
+  "EMI.MI": {
+   "prezzo": 166.29,
+   "data": "2026-11-23T19:45:50.106Z",
+   "fonte": "borsaitaliana"
+  }
+ }
+}
