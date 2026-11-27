@@ -5,14 +5,5 @@ service cloud.firestore {
     match /portafogli/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
-    // Elenco pubblico degli ETF da cui scaricare i prezzi: solo sigla e ISIN, nessun importo.
-    match /simboli/{simbolo} {
-      allow read: if true;
-      allow create, update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['isin'])
-        && request.resource.data.isin is string
-        && request.resource.data.isin.matches('^[A-Z]{2}[A-Z0-9]{9}[0-9]$')
-        && simbolo.matches('^[A-Z0-9]{1,12}[.]MI$');
-    }
   }
 }

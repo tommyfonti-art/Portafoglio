@@ -1,5 +1,5 @@
 import { firebaseConfig } from './firebase-config.js';
-import { riepilogo, calcolaAcquisti, nuovoPmc, simula, valorePos, caricoPos, CLASSI, PERCENTILI, ribilancia } from './calcoli.js';
+import { riepilogo, calcolaAcquisti, nuovoPmc, simula, valorePos, caricoPos, CLASSI, PERCENTILI } from './calcoli.js';
 
 // ---------- Dati di partenza (modificabili tutti dal sito) ----------
 function classeDi(id) {
@@ -81,17 +81,6 @@ async function carica() {
     }
   } else {
     try { const s = localStorage.getItem(CHIAVE_LOCALE); if (s) stato = unisci(JSON.parse(s)); } catch {}
-  }
-  registraSimboli();
-}
-
-// Segnala al server dei prezzi gli ETF di questo profilo (solo sigla e ISIN, nessun importo).
-async function registraSimboli() {
-  // Non serve più: i prezzi arrivano dal ponte su Cloudflare, che legge l'ISIN direttamente.
-  return;
-  for (const p of stato.posizioni) {
-    if (!p.simbolo || !p.isin) continue;
-    try { await fs.setDoc(fs.doc(db, 'simboli', p.simbolo.toUpperCase()), { isin: p.isin.toUpperCase() }); } catch {}
   }
 }
 
@@ -531,7 +520,6 @@ function aPosizioni() {
       else if (inp.dataset.n) p[c] = c === 'quote' ? leggiNum(inp.value) : leggiNumSemplice(inp.value.replace(/\.(?=\d{3}(\D|$))/g, ''));
       if (c === 'prezzo') { p.prezzoData = new Date().toISOString(); p.prezzoFonte = 'mano'; } // scritto a mano adesso: è un prezzo nuovo
       else p[c] = c === 'isin' || c === 'simbolo' ? inp.value.trim().toUpperCase() : inp.value.trim();
-      if (c === 'isin' || c === 'simbolo') registraSimboli();
       salva();
       d.querySelector('summary span').innerHTML = `${esc(p.nome)} <span class="tenue piccolo">· ${num(p.target, 1)}% · ${num(p.quote, 0)} quote</span>`;
       const somma = stato.posizioni.reduce((s, x) => s + (x.target || 0), 0);
@@ -588,7 +576,7 @@ function aPosizioni() {
     const classe = $('#n-tipo').value, [mu, sigma] = STIME[classe];
     const id = 'p' + Date.now();
     stato.posizioni.push({ id, nome: sigla, descr: $('#n-nome').value.trim(), isin, simbolo: sigla + '.MI', target: leggiNumSemplice($('#n-target').value), quote: leggiNum($('#n-quote').value), pmc: leggiNumSemplice($('#n-pmc').value), prezzo: 0, ter: leggiNumSemplice($('#n-ter').value), mu, sigma, classe, aliquota: CLASSI[classe].aliquota });
-    registraSimboli(); salva(); apriPosizione = id; disegna();
+    salva(); apriPosizione = id; disegna();
     avviso(sigla + ' aggiunto');
   };
 
