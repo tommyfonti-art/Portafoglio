@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<meta name="versione-app" content="2026-11-27a">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#F4F1EA">
@@ -47,5 +48,35 @@
 </div>
 <div id="avviso" class="avviso nascosto"></div>
 <script type="module" src="app.js"></script>
+<script>
+/* Aggiornamento automatico: se su GitHub c'è una versione nuova dell'app, la ricarico da sola.
+   Il numero di versione lo cambia GitHub a ogni pubblicazione (file .github/workflows/pubblica.yml). */
+(function(){
+  var mia = (document.querySelector('meta[name="versione-app"]') || {}).content;
+  if (!mia || !window.fetch || location.protocol.indexOf('http') !== 0) return;
+  var inCorso = false;
+  function controlla(){
+    if (inCorso || document.hidden) return;
+    var a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    if (window.portafoglioSalvataggio) return; // prima finisce di salvare
+    inCorso = true;
+    fetch(location.pathname + '?c=' + Date.now(), { cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.text() : ''; })
+      .then(function(t){
+        inCorso = false;
+        var m = t && t.match(/<meta name="versione-app" content="([^"]+)"/);
+        if (!m || m[1] === mia) return;
+        var chiave = 'agg_' + m[1];
+        try { if (sessionStorage.getItem(chiave)) return; sessionStorage.setItem(chiave, '1'); } catch(e) {}
+        location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+      })
+      .catch(function(){ inCorso = false; });
+  }
+  setTimeout(controlla, 1500);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) setTimeout(controlla, 700); });
+  setInterval(controlla, 300000);
+})();
+</script>
 </body>
 </html>

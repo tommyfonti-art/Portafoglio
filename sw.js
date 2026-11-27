@@ -1,5 +1,5 @@
 // Prima la rete, poi la copia salvata: il sito si aggiorna da solo quando c'è una versione nuova.
-const CACHE = 'portafoglio-v18';
+const CACHE = 'portafoglio-v19';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {

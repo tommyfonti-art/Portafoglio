@@ -100,11 +100,13 @@ function salva() {
   try { localStorage.setItem(CHIAVE_LOCALE, JSON.stringify(stato)); } catch {}
   if (!(usaFirebase && utente)) { segnaSalvato('Salvato su questo dispositivo'); return; }
   segnaSalvato('Salvataggio…');
+  window.portafoglioSalvataggio = true; // l'aggiornamento automatico aspetta che finisca
   clearTimeout(attesaSalva);
   attesaSalva = setTimeout(async () => {
     try {
       await fs.setDoc(fs.doc(db, 'portafogli', utente.uid), { stato: JSON.stringify(stato), aggiornato: new Date().toISOString() });
       segnaSalvato('Salvato');
+      window.portafoglioSalvataggio = false;
     } catch (e) { segnaSalvato('Errore di salvataggio'); avviso('Non riesco a salvare: ' + e.message); }
   }, 500);
 }
