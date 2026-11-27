@@ -133,7 +133,7 @@ async function aggiornaPrezzi(bottone) {
       const r = await chiedi(PONTE_PREZZI + '?isin=' + p.isin, 12000);
       const j = r.ok ? await r.json() : null;
       const v = j?.prezzi?.[p.isin.toUpperCase()];
-      if (v > 0) { p.prezzo = v; trovati.add(p.id); quando = j.ora || new Date().toISOString(); }
+      if (v > 0) { p.prezzo = v; trovati.add(p.id); quando = j.ora || new Date().toISOString(); p.prezzoData = quando; p.prezzoFonte = 'borsa'; }
     } catch {}
   }));
   // 2) per quelli che mancano, l'ultimo prezzo salvato su GitHub (se c'è)
@@ -142,15 +142,15 @@ async function aggiornaPrezzi(bottone) {
     try {
       const r = await chiedi('prezzi.json?t=' + Date.now(), 6000);
       const arch = r.ok ? (await r.json()).prezzi || {} : {};
-      for (const p of mancanti) { const a = arch[(p.simbolo || '').toUpperCase()]; if (a?.prezzo > 0) { p.prezzo = a.prezzo; trovati.add(p.id); quando = quando || a.data; } }
+      for (const p of mancanti) { const a = arch[(p.simbolo || '').toUpperCase()]; if (a?.prezzo > 0) { p.prezzo = a.prezzo; trovati.add(p.id); p.prezzoData = a.data || null; p.prezzoFonte = 'archivio'; } }
     } catch {}
   }
+  // la data in alto è quella dei prezzi presi adesso da Borsa Italiana; quelli vecchi vengono segnati a parte
   if (quando) stato.prezziAggiornati = quando;
   salva(); disegna();
-  const ancora = conIsin.filter(p => !trovati.has(p.id)).map(p => p.nome);
-  const senzaIsin = stato.posizioni.filter(p => !p.isin && (p.quote > 0 || p.target > 0)).map(p => p.nome);
-  if (!trovati.size) avviso('Non riesco a prendere i prezzi adesso. Controlla la connessione e riprova.', 4500);
-  else if (ancora.length || senzaIsin.length) avviso('Non trovati: ' + [...ancora, ...senzaIsin].join(', ') + '. Puoi scriverli a mano in Posizioni.', 4500);
+  const vecchi = prezziVecchi().map(p => p.nome + ' (' + dataCorta(p.prezzoData) + ')');
+  if (!quando) avviso('Borsa Italiana non risponde: restano i prezzi di prima. Controlla la connessione e riprova.', 5000);
+  else if (vecchi.length) avviso('Prezzo non aggiornato per ' + vecchi.join(', ') + ': Borsa Italiana non ha risposto. Riprova tra poco o scrivilo a mano in Posizioni.', 6000);
   else avviso('Prezzi aggiornati');
 }
 
@@ -167,7 +167,23 @@ function disegna() {
 function dataPrezzi() {
   if (!stato.prezziAggiornati) return 'Prezzi mai aggiornati';
   const d = new Date(stato.prezziAggiornati);
-  return 'Prezzi del ' + d.toLocaleDateString('it-IT') + ' alle ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  let t = 'Prezzi del ' + d.toLocaleDateString('it-IT') + ' alle ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  const vecchi = prezziVecchi();
+  if (vecchi.length) t += ` · <span style="color:var(--giallo);font-weight:600">non aggiornati: ${vecchi.map(p => esc(p.nome) + ' del ' + dataCorta(p.prezzoData)).join(', ')}</span>`;
+  return t;
+}
+// data breve di un prezzo (es. 20/11), o «data sconosciuta»
+function dataCorta(q) {
+  const d = q ? new Date(q) : null;
+  return d && !isNaN(d) ? d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) : 'data sconosciuta';
+}
+// ETF con un prezzo più vecchio dell'ultimo aggiornamento (Borsa Italiana non ha risposto, o mai aggiornato):
+// un prezzo scritto a mano dopo l'aggiornamento conta come nuovo
+function prezziVecchi() {
+  const rif = stato.prezziAggiornati ? new Date(stato.prezziAggiornati).getTime() : null;
+  if (!rif) return [];
+  return stato.posizioni.filter(p => (p.quote > 0 || p.target > 0) && p.prezzo > 0 && (
+    p.prezzoFonte === 'archivio' || !p.prezzoData || rif - new Date(p.prezzoData).getTime() > 30 * 60 * 1000));
 }
 
 function variazioneGiorno() {
@@ -450,7 +466,7 @@ function vPosizioni() {
   <div class="scheda piccolo ${Math.abs(r.sommaTarget - 100) > 0.01 ? 'negativo' : 'tenue'}">Somma degli obiettivi: <b>${num(r.sommaTarget, 1)}%</b></div>
   ${stato.posizioni.map(p => `
   <details data-id="${p.id}">
-    <summary><span>${esc(p.nome)} <span class="tenue piccolo">· ${num(p.target, 1)}% · ${num(p.quote, 0)} quote</span></span></summary>
+    <summary><span>${esc(p.nome)} <span class="tenue piccolo">· ${num(p.target, 1)}% · ${num(p.quote, 0)} quote</span>${prezziVecchi().includes(p) ? ` <span class="piccolo" style="color:var(--giallo);font-weight:600">· prezzo del ${dataCorta(p.prezzoData)}</span>` : ''}</span></summary>
     <div class="modifica">
       <div><label>Sigla</label><input data-c="nome" value="${esc(p.nome)}"></div>
       <div><label>Simbolo per i prezzi</label><input data-c="simbolo" value="${esc(p.simbolo)}" autocapitalize="characters"></div>
@@ -513,6 +529,7 @@ function aPosizioni() {
       const c = inp.dataset.c;
       if (c === 'classe') { p.classe = inp.value; p.aliquota = CLASSI[p.classe].aliquota; d.querySelector('[data-c=aliquota]').value = num(p.aliquota, 1); }
       else if (inp.dataset.n) p[c] = c === 'quote' ? leggiNum(inp.value) : leggiNumSemplice(inp.value.replace(/\.(?=\d{3}(\D|$))/g, ''));
+      if (c === 'prezzo') { p.prezzoData = new Date().toISOString(); p.prezzoFonte = 'mano'; } // scritto a mano adesso: è un prezzo nuovo
       else p[c] = c === 'isin' || c === 'simbolo' ? inp.value.trim().toUpperCase() : inp.value.trim();
       if (c === 'isin' || c === 'simbolo') registraSimboli();
       salva();
