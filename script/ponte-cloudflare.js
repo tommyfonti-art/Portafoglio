@@ -1,10 +1,13 @@
 // Ponte per i prezzi: l'app chiede gli ISIN, questo servizio legge subito Borsa Italiana e risponde con i prezzi.
 // Va incollato in un «Worker» di Cloudflare (gratuito).
+// Risponde solo al sito di Tommi (27 novembre): chiunque altro riceve un rifiuto.
+const SITO = 'https://tommyfonti-art.github.io';
 export default {
   async fetch(request) {
     const origine = request.headers.get('Origin') || '';
+    if (origine !== SITO) return new Response(JSON.stringify({ errore: 'Non autorizzato' }), { status: 403, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     const intestazioni = {
-      'Access-Control-Allow-Origin': origine.endsWith('.github.io') ? origine : 'https://tommyfonti-art.github.io',
+      'Access-Control-Allow-Origin': SITO,
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store'
