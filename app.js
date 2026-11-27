@@ -116,22 +116,33 @@ async function aggiornaPrezzi(bottone) {
   const conIsin = stato.posizioni.filter(p => p.isin && (p.quote > 0 || p.target > 0));
   const trovati = new Set();
   let quando = null;
-  // 1) il ponte su Cloudflare, un ETF alla volta in parallelo: se uno è lento non blocca gli altri
-  await Promise.all(conIsin.map(async p => {
+  // 1) il ponte su Cloudflare: prima tutti insieme, poi chi non ha risposto si richiede uno alla volta
+  //    (Borsa Italiana a volte non risponde se arrivano troppe richieste insieme)
+  const chiediPonte = async p => {
     try {
       const r = await chiedi(PONTE_PREZZI + '?isin=' + p.isin, 12000);
       const j = r.ok ? await r.json() : null;
       const v = j?.prezzi?.[p.isin.toUpperCase()];
       if (v > 0) { p.prezzo = v; trovati.add(p.id); quando = j.ora || new Date().toISOString(); p.prezzoData = quando; p.prezzoFonte = 'borsa'; }
     } catch {}
-  }));
-  // 2) per quelli che mancano, l'ultimo prezzo salvato su GitHub (se c'è)
+  };
+  await Promise.all(conIsin.map(chiediPonte));
+  for (let giro = 0; giro < 2; giro++) {
+    const ancoraDaFare = conIsin.filter(p => !trovati.has(p.id));
+    if (!ancoraDaFare.length) break;
+    for (const p of ancoraDaFare) { await new Promise(r => setTimeout(r, 800)); await chiediPonte(p); }
+  }
+  // 2) per quelli che mancano ancora, l'ultimo prezzo salvato su GitHub, ma solo se è più recente di quello che c'è già
   const mancanti = conIsin.filter(p => !trovati.has(p.id));
   if (mancanti.length) {
     try {
       const r = await chiedi('prezzi.json?t=' + Date.now(), 6000);
       const arch = r.ok ? (await r.json()).prezzi || {} : {};
-      for (const p of mancanti) { const a = arch[(p.simbolo || '').toUpperCase()]; if (a?.prezzo > 0) { p.prezzo = a.prezzo; trovati.add(p.id); p.prezzoData = a.data || null; p.prezzoFonte = 'archivio'; } }
+      for (const p of mancanti) {
+        const a = arch[(p.simbolo || '').toUpperCase()];
+        const piuNuovo = !(p.prezzo > 0) || !p.prezzoData || (a?.data && new Date(a.data) > new Date(p.prezzoData));
+        if (a?.prezzo > 0 && piuNuovo) { p.prezzo = a.prezzo; p.prezzoData = a.data || null; p.prezzoFonte = 'archivio'; }
+      }
     } catch {}
   }
   // la data in alto è quella dei prezzi presi adesso da Borsa Italiana; quelli vecchi vengono segnati a parte
